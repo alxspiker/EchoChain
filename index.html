@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EchoChain — Pi Network Live Search (Demo)</title>
+  <link rel="icon" href="assets/logo.svg" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>window.Pi && Pi.init({ version: "2.0" });</script>
+</head>
+<body class="landing">
+  <header class="ec-header">
+    <div class="ec-brand">
+      <img class="ec-logo" src="assets/logo.svg" alt="EchoChain" />
+      <span class="ec-title">EchoChain</span>
+    </div>
+    <div class="ec-tagline">Live, permissionless search for Pi Network data</div>
+    <div class="ec-auth">
+      <button id="piAuthButton" class="ec-auth-btn">Sign in with Pi</button>
+      <span id="piUserDisplay" class="ec-user"></span>
+    </div>
+  </header>
+
+  <main class="ec-main">
+    <section class="ec-searchbar" id="searchBar">
+      <form id="searchForm" autocomplete="off">
+        <input id="searchInput" type="text" placeholder="Search on-chain content (e.g., dApp docs, JSON payloads, code snippets)" aria-label="Search" />
+        <button id="searchButton" type="submit" aria-label="Search">Search</button>
+      </form>
+      <div class="ec-filters">
+        <label>
+          Type
+          <select id="typeFilter">
+            <option value="all">All</option>
+            <option value="html">HTML</option>
+            <option value="markdown">Markdown</option>
+            <option value="json">JSON</option>
+            <option value="code">Code</option>
+            <option value="text">Text</option>
+            <option value="binary">Binary</option>
+          </select>
+        </label>
+        <label>
+          From
+          <input id="dateFrom" type="date" />
+        </label>
+        <label>
+          To
+          <input id="dateTo" type="date" />
+        </label>
+        <label class="live-mode">
+          <input id="liveModeToggle" type="checkbox" /> Live Mode
+        </label>
+        <button id="addResultButton" class="ec-add-btn" type="button">Add Result (0.0001 Pi)</button>
+      </div>
+      <div id="statsBar" class="ec-stats" aria-live="polite"></div>
+    </section>
+
+    <section id="resultsContainer" class="ec-results" aria-live="polite"></section>
+
+    <div class="ec-pagination">
+      <button id="loadMoreButton" class="hidden">Load more</button>
+    </div>
+  </main>
+
+  <div id="addModal" class="ec-modal hidden" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+    <div class="ec-modal-content">
+      <h3 id="addModalTitle">Publish Search Result</h3>
+      <form id="addForm">
+        <label>Title <input id="addTitle" required /></label>
+        <label>Description <input id="addDescription" /></label>
+        <label>Tags (comma-separated) <input id="addTags" /></label>
+        <label>Content Type
+          <select id="addType">
+            <option value="text">Text</option>
+            <option value="markdown">Markdown</option>
+            <option value="html">HTML</option>
+            <option value="json">JSON</option>
+            <option value="code">Code</option>
+            <option value="binary">Binary</option>
+          </select>
+        </label>
+        <label>Data
+          <textarea id="addData" rows="8" required placeholder="Paste the content to publish on-chain"></textarea>
+        </label>
+        <div class="ec-modal-actions">
+          <button type="button" id="addCancel">Cancel</button>
+          <button type="submit" id="addSubmit">Pay 0.0001 Pi & Publish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="ec-footer">
+    <span>Live mode queries Pi Testnet completed payments with metadata. Publishing requires a 0.0001 Pi payment.</span>
+    <div>
+      <a href="privacy-policy.html">Privacy Policy</a> ·
+      <a href="terms-of-service.html">Terms of Service</a>
+    </div>
+  </footer>
+
+  <script src="app/utils.js"></script>
+  <script src="app/state.js"></script>
+  <script src="app/router.js"></script>
+  <script src="app/searchEngine.js"></script>
+  <script src="app/renderers.js"></script>
+  <script src="app/main.js"></script>
+</body>
+</html>

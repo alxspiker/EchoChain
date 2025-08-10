@@ -1,0 +1,15 @@
+# Node
+node_modules/
+server/node_modules/
+
+# Env
+.env
+server/.env
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+server/logs/
+
+# Local docs wiki (cloned)
+docs/pi-dev-wiki/
