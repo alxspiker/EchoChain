@@ -9,8 +9,7 @@
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script>
     if (window.Pi) {
-      const sandbox = ['localhost','127.0.0.1'].includes(window.location.hostname);
-      Pi.init({ version: '2.0', sandbox });
+      Pi.init({ version: '2.0', sandbox: true });
     }
   </script>
 </head>
