@@ -23,13 +23,8 @@
 
   function setMode(isResultsMode){
     const body = document.body;
-    if(isResultsMode){
-      body.classList.remove('landing');
-      body.classList.add('results-mode');
-    } else {
-      body.classList.add('landing');
-      body.classList.remove('results-mode');
-    }
+    if(isResultsMode){ body.classList.remove('landing'); body.classList.add('results-mode'); }
+    else { body.classList.add('landing'); body.classList.remove('results-mode'); }
   }
 
   function syncUIToState(){
@@ -62,8 +57,18 @@
     }
   }
 
+  async function requirePiBrowser(){
+    const isPi = await ECUtils.detectPiBrowser();
+    if(!isPi){
+      alert('Open this app in Pi Browser to use authentication and payments.');
+      return false;
+    }
+    return true;
+  }
+
   async function authenticateWithPi(){
-    if(!window.Pi) return alert('Pi SDK not loaded');
+    if(!window.Pi){ alert('Pi SDK not loaded'); return; }
+    if(!(await requirePiBrowser())) return;
     try {
       const scopes = ['payments', 'username'];
       const onIncompletePaymentFound = (payment) => { console.log('Incomplete payment found', payment); };
@@ -81,26 +86,16 @@
 
   async function startPublishPayment(payload){
     if(!window.Pi){ alert('Pi SDK not loaded'); return; }
+    if(!(await requirePiBrowser())) return;
     if(!currentUser){ await authenticateWithPi(); if(!currentUser) return; }
 
     const memo = `EchoChain publish:${(payload.title||'').slice(0,40)}`;
-    const metadata = {
-      kind: 'echomain_publish_v1',
-      title: payload.title,
-      description: payload.description,
-      tags: payload.tags,
-      contentTypeHint: payload.contentTypeHint,
-      data: payload.data
-    };
+    const metadata = { kind: 'echomain_publish_v1', title: payload.title, description: payload.description, tags: payload.tags, contentTypeHint: payload.contentTypeHint, data: payload.data };
 
     const paymentData = { amount: 0.0001, memo, metadata };
     const paymentCallbacks = {
-      onReadyForServerApproval: async (paymentId) => {
-        await fetch('/payments/approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentId }) });
-      },
-      onReadyForServerCompletion: async (paymentId, txid) => {
-        await fetch('/payments/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentId, txid }) });
-      },
+      onReadyForServerApproval: async (paymentId) => { await fetch('/payments/approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentId }) }); },
+      onReadyForServerCompletion: async (paymentId, txid) => { await fetch('/payments/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentId, txid }) }); },
       onCancel: (paymentId) => { console.log('Payment cancelled', paymentId); },
       onError: (error, payment) => { console.error('Payment error', error, payment); alert('Payment error.'); },
     };
@@ -110,7 +105,6 @@
       console.log('Payment initiated', payment);
       alert('Publish payment sent. It may take a moment to appear in search.');
       closeAddModal();
-      // Re-run search to pull fresh results
       runSearch(true);
     } catch (e) {
       console.error('Payment initiation failed', e);
@@ -120,39 +114,20 @@
 
   async function runSearch(resetPage=true){
     const hasQuery = (AppState.query || '').trim().length > 0;
-    if(!hasQuery){
-      setMode(false);
-      AppState.results = [];
-      AppState.totalResults = 0;
-      AppState.lastSearchMs = 0;
-      ECRender.renderResults([], [], false);
-      ECRender.renderStats(0, 0);
-      loadMoreBtn().classList.add('hidden');
-      return;
-    }
+    if(!hasQuery){ setMode(false); AppState.results = []; AppState.totalResults = 0; AppState.lastSearchMs = 0; ECRender.renderResults([], [], false); ECRender.renderStats(0, 0); loadMoreBtn().classList.add('hidden'); return; }
 
     if(resetPage){ AppState.currentPage = 1; }
-    const { results, elapsedMs, tokens } = await ECSearch.search(AppState.query, {
-      selectedType: AppState.selectedType,
-      dateFrom: AppState.dateFrom,
-      dateTo: AppState.dateTo
-    });
+    const { results, elapsedMs, tokens } = await ECSearch.search(AppState.query, { selectedType: AppState.selectedType, dateFrom: AppState.dateFrom, dateTo: AppState.dateTo });
 
     setMode(true);
 
-    AppState.results = results;
-    AppState.totalResults = results.length;
-    AppState.lastSearchMs = elapsedMs;
+    AppState.results = results; AppState.totalResults = results.length; AppState.lastSearchMs = elapsedMs;
 
     const pageItems = ECSearch.paginate(results, AppState.currentPage, AppState.pageSize);
     ECRender.renderResults(pageItems, tokens, false);
     ECRender.renderStats(AppState.totalResults, elapsedMs);
 
-    if(AppState.totalResults > AppState.pageSize){
-      loadMoreBtn().classList.remove('hidden');
-    } else {
-      loadMoreBtn().classList.add('hidden');
-    }
+    if(AppState.totalResults > AppState.pageSize){ loadMoreBtn().classList.remove('hidden'); } else { loadMoreBtn().classList.add('hidden'); }
   }
 
   function attachEvents(){
@@ -165,60 +140,25 @@
     dateFrom().addEventListener('change', ()=>{ AppState.dateFrom = dateFrom().value; syncStateToRouter(); runSearch(true); });
     dateTo().addEventListener('change', ()=>{ AppState.dateTo = dateTo().value; syncStateToRouter(); runSearch(true); });
 
-    liveToggle().addEventListener('change', ()=>{
-      AppState.liveMode = liveToggle().checked;
-      syncStateToRouter();
-      if(AppState.liveMode){ console.log('Live mode enabled'); }
-    });
+    liveToggle().addEventListener('change', ()=>{ AppState.liveMode = liveToggle().checked; syncStateToRouter(); if(AppState.liveMode){ console.log('Live mode enabled'); } });
 
-    loadMoreBtn().addEventListener('click', ()=>{
-      AppState.currentPage += 1;
-      const { tokens } = { tokens: ECUtils.tokenize(AppState.query) };
-      const pageItems = ECSearch.paginate(AppState.results, AppState.currentPage, AppState.pageSize);
-      ECRender.renderResults(pageItems, tokens, true);
-      if(AppState.currentPage * AppState.pageSize >= AppState.totalResults){
-        loadMoreBtn().classList.add('hidden');
-      }
-    });
+    loadMoreBtn().addEventListener('click', ()=>{ AppState.currentPage += 1; const { tokens } = { tokens: ECUtils.tokenize(AppState.query) }; const pageItems = ECSearch.paginate(AppState.results, AppState.currentPage, AppState.pageSize); ECRender.renderResults(pageItems, tokens, true); if(AppState.currentPage * AppState.pageSize >= AppState.totalResults){ loadMoreBtn().classList.add('hidden'); } });
 
     piAuthButton().addEventListener('click', authenticateWithPi);
 
-    addResultButton().addEventListener('click', ()=>{
-      if(!currentUser){
-        authenticateWithPi().then(()=>{ if(currentUser) openAddModal(); });
-      } else {
-        openAddModal();
-      }
+    addResultButton().addEventListener('click', async ()=>{
+      if(!(await requirePiBrowser())) return;
+      if(!currentUser){ await authenticateWithPi(); if(!currentUser) return; }
+      openAddModal();
     });
     addCancel().addEventListener('click', closeAddModal);
 
-    addForm().addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const payload = {
-        title: addTitle().value.trim(),
-        description: addDescription().value.trim(),
-        tags: addTags().value.split(',').map(s=>s.trim()).filter(Boolean),
-        contentTypeHint: addType().value,
-        data: addData().value
-      };
-      startPublishPayment(payload);
-    });
+    addForm().addEventListener('submit', (e)=>{ e.preventDefault(); const payload = { title: addTitle().value.trim(), description: addDescription().value.trim(), tags: addTags().value.split(',').map(s=>s.trim()).filter(Boolean), contentTypeHint: addType().value, data: addData().value }; startPublishPayment(payload); });
 
-    window.addEventListener('popstate', ()=>{
-      const st = ECRouter.parseState();
-      Object.assign(AppState, st);
-      syncUIToState();
-      runSearch(true);
-    });
+    window.addEventListener('popstate', ()=>{ const st = ECRouter.parseState(); Object.assign(AppState, st); syncUIToState(); runSearch(true); });
   }
 
-  async function init(){
-    const st = ECRouter.parseState();
-    Object.assign(AppState, st);
-    syncUIToState();
-    attachEvents();
-    await runSearch(true);
-  }
+  async function init(){ const st = ECRouter.parseState(); Object.assign(AppState, st); syncUIToState(); attachEvents(); await runSearch(true); }
 
   document.addEventListener('DOMContentLoaded', init);
 })();

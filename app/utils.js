@@ -64,7 +64,21 @@
     return (data||'').slice(start, start + maxLen);
   }
 
+  async function detectPiBrowser(){
+    const timeout = new Promise(resolve => setTimeout(() => resolve('timeout'), 3000));
+    try {
+      if (window?.Pi?.getPiHostAppInfo) {
+        const result = await Promise.race([window.Pi.getPiHostAppInfo(), timeout]);
+        if (result && result.hostApp === 'pi-browser') return true;
+      }
+    } catch (e) {
+      console.warn('Pi SDK detection failed', e);
+    }
+    const ua = navigator?.userAgent?.toLowerCase() || '';
+    return ua.includes('pibrowser') || document.referrer.includes('minepi.com');
+  }
+
   window.ECUtils = {
-    debounce, escapeHTML, normalize, tokenize, highlightText, detectContentType, formatDate, extractPreview
+    debounce, escapeHTML, normalize, tokenize, highlightText, detectContentType, formatDate, extractPreview, detectPiBrowser
   };
 })();
