@@ -49,12 +49,12 @@
   function updateAuthUI(){
     if(currentUser){
       piUserDisplay().textContent = `@${currentUser.username}`;
-      piAuthButton().textContent = 'Signed in';
-      piAuthButton().disabled = true;
+      piAuthButton().classList.add('hidden');
+      addResultButton().classList.remove('hidden');
     } else {
       piUserDisplay().textContent = '';
-      piAuthButton().textContent = 'Sign in with Pi';
-      piAuthButton().disabled = false;
+      piAuthButton().classList.remove('hidden');
+      addResultButton().classList.add('hidden');
     }
   }
 
