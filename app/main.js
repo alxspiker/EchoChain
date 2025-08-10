@@ -20,6 +20,7 @@
   const addData = () => document.getElementById('addData');
 
   let currentUser = null;
+  let grantedScopes = new Set();
 
   function setMode(isResultsMode){
     const body = document.body;
@@ -66,19 +67,27 @@
     return true;
   }
 
-  async function authenticateWithPi(){
+  async function authenticateWithPi(requiredScopes = ['payments','username']){
     if(!window.Pi){ alert('Pi SDK not loaded'); return; }
     if(!(await requirePiBrowser())) return;
     try {
-      const scopes = ['payments', 'username'];
       const onIncompletePaymentFound = (payment) => { console.log('Incomplete payment found', payment); };
-      const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
-      currentUser = auth.user; // { username, uid }
+      const auth = await Pi.authenticate(requiredScopes, onIncompletePaymentFound);
+      currentUser = auth.user; // { username, uid, credentials }
+      const scopes = auth?.user?.credentials?.scopes || auth?.credentials?.scopes || requiredScopes;
+      grantedScopes = new Set(scopes);
       updateAuthUI();
     } catch (e) {
       console.error('Pi auth failed', e);
       alert('Pi authentication failed.');
     }
+  }
+
+  async function ensurePaymentsScope(){
+    if(!grantedScopes.has('payments')){
+      await authenticateWithPi(['payments','username']);
+    }
+    return grantedScopes.has('payments');
   }
 
   function openAddModal(){ addModal().classList.remove('hidden'); }
@@ -87,7 +96,8 @@
   async function startPublishPayment(payload){
     if(!window.Pi){ alert('Pi SDK not loaded'); return; }
     if(!(await requirePiBrowser())) return;
-    if(!currentUser){ await authenticateWithPi(); if(!currentUser) return; }
+    if(!currentUser){ await authenticateWithPi(['payments','username']); if(!currentUser) return; }
+    if(!(await ensurePaymentsScope())){ alert('Payments permission is required. Please grant the payments scope.'); return; }
 
     const memo = `EchoChain publish:${(payload.title||'').slice(0,40)}`;
     const metadata = { kind: 'echomain_publish_v1', title: payload.title, description: payload.description, tags: payload.tags, contentTypeHint: payload.contentTypeHint, data: payload.data };
@@ -144,11 +154,12 @@
 
     loadMoreBtn().addEventListener('click', ()=>{ AppState.currentPage += 1; const { tokens } = { tokens: ECUtils.tokenize(AppState.query) }; const pageItems = ECSearch.paginate(AppState.results, AppState.currentPage, AppState.pageSize); ECRender.renderResults(pageItems, tokens, true); if(AppState.currentPage * AppState.pageSize >= AppState.totalResults){ loadMoreBtn().classList.add('hidden'); } });
 
-    piAuthButton().addEventListener('click', authenticateWithPi);
+    piAuthButton().addEventListener('click', ()=> authenticateWithPi(['payments','username']));
 
     addResultButton().addEventListener('click', async ()=>{
       if(!(await requirePiBrowser())) return;
-      if(!currentUser){ await authenticateWithPi(); if(!currentUser) return; }
+      if(!currentUser){ await authenticateWithPi(['payments','username']); if(!currentUser) return; }
+      if(!(await ensurePaymentsScope())) return;
       openAddModal();
     });
     addCancel().addEventListener('click', closeAddModal);
