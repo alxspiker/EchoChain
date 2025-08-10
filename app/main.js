@@ -169,7 +169,40 @@
     window.addEventListener('popstate', ()=>{ const st = ECRouter.parseState(); Object.assign(AppState, st); syncUIToState(); runSearch(true); });
   }
 
-  async function init(){ const st = ECRouter.parseState(); Object.assign(AppState, st); syncUIToState(); attachEvents(); await runSearch(true); }
+  async function initEchoChainApp(){ 
+    const st = ECRouter.parseState(); 
+    Object.assign(AppState, st); 
+    syncUIToState(); 
+    attachEvents(); 
+    await runSearch(true); 
+  }
 
-  document.addEventListener('DOMContentLoaded', init);
+  function showWebFallback() {
+    const appRoot = document.getElementById('app-root');
+    if (appRoot) {
+      appRoot.innerHTML = `
+        <div style="text-align: center; padding: 50px 20px; max-width: 600px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+          <img src="assets/logo.svg" alt="EchoChain" style="width: 50px; height: 50px; margin-bottom: 16px;" />
+          <h2 style="font-size: 22px; margin: 0 0 8px 0;">Pi Browser Required</h2>
+          <p style="color: #475569; line-height: 1.6;">
+            For full functionality, including signing in and publishing results on-chain, please open this application inside the Pi Browser.
+          </p>
+          <p style="color: #475569; line-height: 1.6; margin-top: 16px;">
+            You can download Pi Browser from the main Pi Network app.
+          </p>
+        </div>
+      `;
+    }
+  }
+
+  async function initializeApp() {
+    const isPi = await ECUtils.detectPiBrowser();
+    if (isPi) {
+      initEchoChainApp();
+    } else {
+      showWebFallback();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeApp);
 })();
